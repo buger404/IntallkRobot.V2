@@ -21,7 +21,8 @@ namespace Buger404
                 var = obj;
             }
         }
-        List<DataItem> di = new List<DataItem>();
+        public object nullchar = null;
+        public List<DataItem> di = new List<DataItem>();
         string dname = "default";
         DateTime SaveTime;
         static DataCenter()
@@ -30,8 +31,9 @@ namespace Buger404
             if (!Directory.Exists(@"C:\.dcenter")) Directory.CreateDirectory(@"C:\.dcenter");
             if (!Directory.Exists(@"C:\.dcenter\backup")) Directory.CreateDirectory(@"C:\.dcenter\backup");
         }
-        public DataCenter(string name)
+        public DataCenter(string name,object whennull = null)
         {
+            nullchar = whennull;
             if (name.Contains('\\') || name.Contains('?') || name.Contains('/')
                 || name.Contains('*') || name.Contains('|') || name.Contains('"')
                 || name.Contains('<') || name.Contains('>') || name.Contains(':')
@@ -71,7 +73,7 @@ namespace Buger404
             {
                 int index = ind;
                 if (index == -1) index = di.FindIndex(m => m.name == key && m.group == group);
-                if (index == -1) return null;
+                if (index == -1) return nullchar;
                 return di[index].var;
             }
             set
