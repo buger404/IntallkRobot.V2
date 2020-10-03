@@ -102,16 +102,22 @@ namespace io.github.buger404.intallk.code
             {
                 Msg m = mq[index];
                 m.repeat += 1; m.repeaters += e.FromQQ.Id + ";"; mq[mq.Count - 1] = m;
-                if(m.repeat >= 3)
+                Console.WriteLine("heat the word:" + m.repeat);
+                if (m.repeat == 3)
                 {
+                    Console.WriteLine("record!");
                     int qcount = (int)DT.re["q" + m.qq, "count"] + 1,
                         ccount = (int)DT.re["count"] + 1;
                     DT.re["q" + m.qq, "count"] = qcount;
                     DT.re["count"] = ccount;
                     DT.re["q" + m.qq, qcount.ToString()] = m.content;
                 }
+                mq.RemoveAt(index);
             }
-            foreach (Msg m in mq.FindAll(m => m.group == e.FromGroup.Id)) m.Tick();
+            for(int i = 0;i < mq.Count; i++)
+            {
+                if (mq[i].group == e.FromGroup.Id) mq[i].Tick();
+            }
             mq.RemoveAll(m => m.tick > 10);
         }
 
@@ -136,13 +142,10 @@ namespace io.github.buger404.intallk.code
             DT.log("intallk-command", e.FromGroup.Id + "\\" + e.FromQQ.Id + "：" + re);
             #endregion
 
+            #region Information Command
             if (p[0] == ".bark" && DT.pm(e.FromQQ.Id, 0)) e.FromGroup.SendGroupMessage("汪");
             if (p[0] == ".help" ) e.FromGroup.SendGroupMessage("https://buger404.gitee.io/web/blog.html?article=intallk-guidence");
-            if (p[0] == ".save" && DT.pm(e.FromQQ.Id, 32767))
-            {
-                DT.pms.Write(); DT.sw.Write(); DT.bm.Write();
-                e.FromGroup.SendGroupMessage(e.FromQQ.CQCode_At(), "成功");
-            }
+            if (p[0] == ".lic") e.FromGroup.SendGroupMessage("https://buger404.gitee.io/web/blog.html?article=intallk-license");
             if (p[0] == ".pms")
             {
                 if (p.Length == 1) e.FromGroup.SendGroupMessage(DT.pmi(e.FromQQ.Id));
@@ -167,27 +170,99 @@ namespace io.github.buger404.intallk.code
                     }
                 }
             }
-            if (p[0] == ".lic")
+            #endregion
+            #region Repeat Record Command
+            if (p[0] == ".ws" && DT.pm(e.FromQQ.Id, 0))
             {
-                e.FromGroup.SendGroupMessage("https://buger404.gitee.io/web/blog.html?article=intallk-license");
+                if (p.Length == 1) e.FromGroup.SendGroupMessage("共" + DT.re["count"] + "条语录");
+                if (p.Length == 2) e.FromGroup.SendGroupMessage("对象共有" + DT.re["q" + p[1], "count"] + "条语录");
             }
-            if (p[0] == ".elog" && DT.pm(e.FromQQ.Id, 0))
+            if (p[0] == ".w" && DT.pm(e.FromQQ.Id, 0))
             {
-                Exception err = errlog[int.Parse(p[1])];
-                e.FromQQ.SendPrivateMessage(err.Message);
-                e.FromQQ.SendPrivateMessage(err.StackTrace);
-                e.FromQQ.SendPrivateMessage(err.Source);
-                string o = "";
-                if(err.Data.Count > 0)
+                if (p.Length == 1)
                 {
-                    foreach (DictionaryEntry de in err.Data)
+                    List<DataCenter.DataItem> dl = DT.re.di.FindAll(m => m.name != "count");
+                    DataCenter.DataItem d = dl[ran.Next(0, dl.Count)];
+                    e.FromGroup.SendGroupMessage(
+                        CQApi.CQCode_At(long.Parse(d.group.Remove(0,1))), "：", d.var.ToString()
+                        );
+                }
+                if (p.Length == 2)
+                {
+                    int ind = 0,exc = int.Parse(p[1]);
+                    for(int i = 0;i < DT.re.di.Count; i++)
                     {
-                        o += de.Key.ToString() + ":" + de.Value + "\n";
+                        if (DT.re.di[i].name != "count") ind++;
+                        if (ind == exc)
+                        {
+                            e.FromGroup.SendGroupMessage(
+                                CQApi.CQCode_At(long.Parse(DT.re.di[i].group.Remove(0, 1))), "：", DT.re.di[i].var.ToString()
+                                );
+                        }
                     }
                 }
+            }
+            if (p[0] == ".wp" && DT.pm(e.FromQQ.Id, 0))
+            {
+                if (p.Length == 2)
+                {
+                    int index = ran.Next(1, (int)DT.re["q" + p[1],"count"] + 1);
+                    e.FromGroup.SendGroupMessage(
+                        CQApi.CQCode_At(long.Parse(p[1])), "：", DT.re["q" + p[1], index.ToString()].ToString()
+                        );
+                }
+                if (p.Length == 3)
+                {
+                    e.FromGroup.SendGroupMessage(
+                        CQApi.CQCode_At(long.Parse(p[1])), "：", DT.re["q" + p[1], p[2]].ToString()
+                        );
+                }
+            }
+            if (p[0] == ".wse" && DT.pm(e.FromQQ.Id, 0))
+            {
+                if (p.Length == 2)
+                {
+                    List<DataCenter.DataItem> dl = DT.re.di.FindAll(m => m.name != "count" && m.var.ToString().ToLower().Contains(p[1].ToLower()));
+                    DataCenter.DataItem d = dl[ran.Next(0, dl.Count)];
+                    e.FromGroup.SendGroupMessage(
+                        CQApi.CQCode_At(long.Parse(d.group.Remove(0, 1))), "：", d.var.ToString()
+                        );
+                }
+                if (p.Length == 3)
+                {
+                    List<DataCenter.DataItem> dl = DT.re.di.FindAll(m => m.name != "count" && m.group == "q" + p[2] && m.var.ToString().ToLower().Contains(p[1].ToLower()));
+                    DataCenter.DataItem d = dl[ran.Next(0, dl.Count)];
+                    e.FromGroup.SendGroupMessage(
+                        CQApi.CQCode_At(long.Parse(d.group.Remove(0, 1))), "：", d.var.ToString()
+                        );
+                }
+            }
+            if (p[0] == ".t" && DT.pm(e.FromQQ.Id, 0))
+            {
+                string o = "";
+                foreach(Msg m in mq.FindAll(m => m.group == e.FromGroup.Id))
+                {
+                    if(m.repeaters != "")
+                    {
+                        string n = "";
+                        foreach(string qqs in m.repeaters.Split(';'))
+                        {
+                            if (qqs != "") n += GetGroupCard(long.Parse(qqs), e.FromGroup) + "，";
+                        }
+                        o += "（复读者：" + n + "）\n" + m.content + "\n";
+                    }
+                    else
+                    {
+                        o +=  "（" + GetGroupCard(m.qq, e.FromGroup) + "）\n" + m.content + "\n";
+                    }
+                }
+                o = o.Replace("[CQ:at,", "[艾特,").Replace("[CQ:image,", "[图片,");
+                o = o.Replace("[CQ:,", "[操作：");
                 e.FromQQ.SendPrivateMessage(o);
                 e.FromGroup.SendGroupMessage(e.FromQQ.CQCode_At(), "私聊查收");
             }
+            #endregion
+            #region Debug Command
             if (p[0] == ".or")
             {
                 string o = "";
@@ -198,56 +273,38 @@ namespace io.github.buger404.intallk.code
             {
                 e.FromGroup.SendGroupMessage(re);
             }
-            if (p[0] == ".ws" && DT.pm(e.FromQQ.Id, 0))
+            if (p[0] == ".cmd")
             {
-                if (p.Length == 1) e.FromGroup.SendGroupMessage("共" + DT.re["count"] + "条语录");
-                if (p.Length == 2) e.FromGroup.SendGroupMessage("对象共有" + DT.re[p[1], "count"] + "条语录");
+                string o = "param.length = " + p.Length + "\n";
+                for(int i = 0;i < p.Length; i++)
+                {
+                    o += "p[" + i + "] = " + p[i] + "\n";
+                }
+                e.FromGroup.SendGroupMessage(o);
             }
-            if (p[0] == ".w" && DT.pm(e.FromQQ.Id, 0))
+            if (p[0] == ".elog" && DT.pm(e.FromQQ.Id, 0))
             {
-                if (p.Length == 1)
-                {
-                    DataCenter.DataItem d = DT.re.di[ran.Next(1, (int)DT.re["count"])];
-                    e.FromGroup.SendGroupMessage(
-                        CQApi.CQCode_At(long.Parse(d.group.Remove(0,1))), "：", d.var.ToString()
-                        );
-                }
-                if (p.Length == 2)
-                {
-                    DataCenter.DataItem d = DT.re.di[ran.Next(1, int.Parse(p[1]))];
-                    e.FromGroup.SendGroupMessage(
-                        CQApi.CQCode_At(long.Parse(d.group.Remove(0, 1))), "：", d.var.ToString()
-                        );
-                }
-            }
-            if (p[0] == ".wp" && DT.pm(e.FromQQ.Id, 0))
-            {
-                if (p.Length == 2)
-                {
-                    int index = ran.Next(1, (int)DT.re[p[1],"count"]);
-                    e.FromGroup.SendGroupMessage(
-                        CQApi.CQCode_At(long.Parse(p[1])), "：", DT.re[p[1],index.ToString()].ToString()
-                        );
-                }
-                if (p.Length == 3)
-                {
-                    e.FromGroup.SendGroupMessage(
-                        CQApi.CQCode_At(long.Parse(p[1])), "：", DT.re[p[1], p[2]].ToString()
-                        );
-                }
-            }
-            if (p[0] == ".t" && DT.pm(e.FromQQ.Id, 0))
-            {
+                Exception err = errlog[int.Parse(p[1])];
+                e.FromQQ.SendPrivateMessage(err.Message);
+                e.FromQQ.SendPrivateMessage(err.StackTrace);
+                e.FromQQ.SendPrivateMessage(err.Source);
                 string o = "";
-                foreach(Msg m in mq.FindAll(m => m.group == e.FromGroup.Id))
+                if (err.Data.Count > 0)
                 {
-                    o += "QQ " + m.qq.ToString() + "（复读者：" + m.repeaters + "）\n" + m.content + "\n";
+                    foreach (DictionaryEntry de in err.Data)
+                    {
+                        o += de.Key.ToString() + ":" + de.Value + "\n";
+                    }
                 }
-                o = o.Replace("[CQ:at,", "[艾特,").Replace("[CQ:image,", "[图片,");
-                o = o.Replace("[CQ:,", "[操作：");
                 e.FromQQ.SendPrivateMessage(o);
                 e.FromGroup.SendGroupMessage(e.FromQQ.CQCode_At(), "私聊查收");
             }
+            if (p[0] == ".save" && DT.pm(e.FromQQ.Id, 32767))
+            {
+                DT.pms.Write(); DT.sw.Write(); DT.bm.Write(); DT.re.Write();
+                e.FromGroup.SendGroupMessage(e.FromQQ.CQCode_At(), "成功");
+            }
+            #endregion
         }
 
         public void Switcher(CQGroupMessageEventArgs e)
@@ -332,6 +389,14 @@ namespace io.github.buger404.intallk.code
                     requestOK(e, r.mark);
                 }
             }
+        }
+
+        public string GetGroupCard(long qq,Group g)
+        {
+            GroupMemberInfo gmi = g.GetGroupMemberInfo(qq);
+            string c = gmi.Card;
+            if (c == "" || c == null) c = gmi.Nick;
+            return c;
         }
 
     }

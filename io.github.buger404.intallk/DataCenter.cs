@@ -88,7 +88,8 @@ namespace Buger404
                     di.Add(new DataItem { name = key, var = value,group = group });
                     return;
                 }
-                di[index].Update(value);
+                DataItem d = di[index];
+                d.var = value; di[index] = d;
                 if ((DateTime.Now - SaveTime).TotalSeconds >= 600)
                 {
                     Console.WriteLine("DataCenter: Auto saved.");
